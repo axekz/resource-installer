@@ -1,0 +1,15 @@
+7-Zip (r) 26.04 (x86), 2026-10-05
+Igor Pavlov
+
+The standalone 7zr.exe reports its license as "Public domain".
+7zr is the reduced standalone 7-Zip console program, distributed with the
+LZMA SDK. It is not the full 7z.exe/7z.dll distribution.
+
+LZMA SDK is placed in the public domain.
+
+Unmodified binary:
+https://github.com/ip7z/7zip/releases/download/26.04/7zr.exe
+Corresponding source and licensing information:
+https://github.com/ip7z/7zip/releases/download/26.04/lzma2604.7z
+https://www.7-zip.org/sdk.html
+https://www.7-zip.org/download.html

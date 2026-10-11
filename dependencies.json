@@ -1,0 +1,20 @@
+{
+  "nsis": {
+    "version": "3.13",
+    "url": "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip?download=1",
+    "file": "nsis-3.13.zip",
+    "sha256": "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8"
+  },
+  "inetc": {
+    "version": "1.0.5.3",
+    "url": "https://nsis.sourceforge.io/mediawiki/images/c/c9/Inetc.zip",
+    "file": "Inetc.zip",
+    "sha256": "88d9dcffbe967df6ee9f5820f8199a673383e581bf650dbc35b94846314b1a4b"
+  },
+  "7zr": {
+    "version": "26.04",
+    "url": "https://github.com/ip7z/7zip/releases/download/26.04/7zr.exe",
+    "file": "7zr.exe",
+    "sha256": "256feca8e274e5da655e2a284fabafd9f554365eb164862089dacd4e8276d282"
+  }
+}
