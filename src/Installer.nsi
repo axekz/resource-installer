@@ -272,11 +272,14 @@ Section "Resources"
   Delete "$WorkDir\ResourcesPack.7z"
   inetc::get /CONNECTTIMEOUT 30 /RECEIVETIMEOUT 60 /NOCOOKIES /USERAGENT "AXE-Resource-Installer/1.0" /HEADER "Cache-Control: no-cache" /TRANSLATE "$Text_DownloadFile" "$Text_Connecting" "$Text_Second" "$Text_Minute" "$Text_Hour" "$Text_Plural" "$Text_DownloadProgress" "$Text_Remaining" /CANCELTEXT "$Text_CancelButton" "https://r2.axekz.com/packages/ResourcesPack.7z" "$WorkDir\ResourcesPack.7z" /END
   Pop $Result
+  FileOpen $4 "$LogFile" a
+  FileWrite $4 "Download: $Result$\r$\n"
+  FileClose $4
   ${If} $Result != "OK"
     ${If} $Result == "Cancelled"
       DetailPrint "$Text_Cancelled"
     ${Else}
-      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$Text_RetryDownload$\r$\n$Result" IDRETRY download_retry
+      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$Text_RetryDownload$\r$\n$Result$\r$\n$Text_LogHint$\r$\n$LogFile" IDRETRY download_retry
     ${EndIf}
     StrCpy $Failed 1
     StrCpy $Busy 0
