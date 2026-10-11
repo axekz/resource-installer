@@ -8,10 +8,13 @@ RequestExecutionLevel user
 SetCompressor /SOLID lzma
 ShowInstDetails show
 BrandingText " "
-VIProductVersion "1.0.0.0"
+!ifndef AXE_VERSION
+!define AXE_VERSION "1.0.0"
+!endif
+VIProductVersion "${AXE_VERSION}.0"
 VIAddVersionKey "ProductName" "AXE GOKZ Resource Installer"
 VIAddVersionKey "FileDescription" "Resources for standalone CS:GO Legacy (4465480)"
-VIAddVersionKey "FileVersion" "1.0.0"
+VIAddVersionKey "FileVersion" "${AXE_VERSION}"
 VIAddVersionKey "LegalCopyright" "AXE GOKZ contributors"
 
 !include "MUI2.nsh"

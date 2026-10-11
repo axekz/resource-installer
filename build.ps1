@@ -1,7 +1,13 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param()
+param(
+    [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
+    [string]$Version = '1.0.0'
+)
 $ErrorActionPreference = 'Stop'
+foreach ($part in $Version.Split('.')) {
+    if ([long]$part -gt 65535) { throw 'Version components must be at most 65535' }
+}
 $root = $PSScriptRoot
 $cache = Join-Path $root '.cache'
 $dist = Join-Path $root 'dist'
@@ -66,7 +72,7 @@ $languageSource.Add('FunctionEnd')
 $compiler = Join-Path $cache 'nsis/nsis-3.13/Bin/makensis.exe'
 Push-Location $root
 try {
-    & $compiler /V3 /INPUTCHARSET UTF8 src/Installer.nsi
+    & $compiler /V3 /INPUTCHARSET UTF8 "/DAXE_VERSION=$Version" src/Installer.nsi
     if ($LASTEXITCODE -ne 0) { throw 'NSIS compilation failed' }
 } finally { Pop-Location }
 $output = Join-Path $dist 'AXE-Resource-Installer.exe'

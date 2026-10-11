@@ -62,6 +62,32 @@ for inspection. They never launch or install into a real CS:GO game. The real
 pack test verifies archive CRCs, extracts the pack, installs into a fixture,
 and compares every installed file's SHA-256 with the staging copy.
 
+## GitHub releases
+
+[Build and release workflow](.github/workflows/release.yml) tests and builds on
+Windows for pushes, pull requests, and manual runs. Pushing a version tag also
+publishes a GitHub release containing the portable EXE and `SHA256SUMS.txt`.
+The executable's version is taken from the tag. All fixture and download-failure
+tests must pass before publishing; CI does not download the full resource pack.
+Actions and build dependencies are pinned. Only the publishing job has write
+permission, using GitHub's automatic token; no personal token is needed.
+
+After configuring this independent repository's GitHub `origin`:
+
+```powershell
+git push -u origin HEAD
+git tag -a v1.0.0 -m "AXE GOKZ Resource Installer 1.0.0"
+git push origin v1.0.0
+```
+
+Use a new `vMAJOR.MINOR.PATCH` tag for each release. Version components must be
+at most 65535. To build a matching version locally, pass `-Version 1.0.0` to
+`build.ps1`. Manual runs on a branch produce a downloadable Actions artifact;
+manual runs on a version tag publish that tag. A failed draft release can be
+retried; published release assets are never overwritten by this workflow.
+The repository must allow GitHub Actions and the publishing job's
+`contents: write` permission. Releases remain unsigned.
+
 ## Installation and recovery
 
 Steam registry entries and `libraryfolders.vdf` identify libraries;

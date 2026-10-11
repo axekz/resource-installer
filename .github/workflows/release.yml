@@ -1,0 +1,91 @@
+name: Build and release
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Determine executable version
+        env:
+          BUILD_REF: ${{ github.ref }}
+        run: |
+          $version = '1.0.0'
+          if ($env:BUILD_REF.StartsWith('refs/tags/')) {
+            if ($env:BUILD_REF -notmatch '^refs/tags/v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$') {
+              throw 'Release tags must use vMAJOR.MINOR.PATCH, for example v1.0.0'
+            }
+            $version = $Matches[1]
+          }
+          "AXE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Build portable installer with pinned dependencies
+        run: ./build.ps1 -Version $env:AXE_VERSION
+      - name: Test temporary game fixtures and download failure
+        run: ./tests/run.ps1 -Network
+      - name: Verify version and generate checksum
+        run: |
+          $exe = Get-Item dist/AXE-Resource-Installer.exe
+          if ($exe.VersionInfo.FileVersion -ne $env:AXE_VERSION) { throw 'Executable version mismatch' }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($exe.Name)" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          "Installer: $($exe.Length) bytes; version $env:AXE_VERSION" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: portable-installer
+          path: |
+            dist/AXE-Resource-Installer.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: portable-installer
+          path: dist
+      - name: Publish tested installer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum --check SHA256SUMS.txt)
+          if gh release view "$RELEASE_TAG" --json isDraft > release.json 2>/dev/null; then
+            if ! jq -e '.isDraft == true' release.json > /dev/null; then
+              echo 'This release is already published; use a new version tag.' >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" dist/AXE-Resource-Installer.exe dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/AXE-Resource-Installer.exe dist/SHA256SUMS.txt \
+              --verify-tag --draft --title "AXE GOKZ Resource Installer $RELEASE_TAG" --generate-notes
+          fi
+          gh release edit "$RELEASE_TAG" --draft=false
