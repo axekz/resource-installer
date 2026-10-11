@@ -1,0 +1,48 @@
+name: Upload release to R2
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+    secrets:
+      R2_ACCESS_KEY_ID:
+        required: true
+      R2_SECRET_ACCESS_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Published release tag to mirror (for example v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-r2-upload
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Mirror verified release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: 'true'
+        run: bash .github/scripts/upload-r2.sh

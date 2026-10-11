@@ -15,6 +15,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check-r2-upload:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Test R2 uploader with isolated fixtures
+        run: |
+          bash -n .github/scripts/upload-r2.sh
+          python3 tests/test_upload_r2.py
+
   build:
     runs-on: windows-2022
     timeout-minutes: 20
@@ -59,7 +71,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v') && github.event_name != 'pull_request'
-    needs: build
+    needs: [build, check-r2-upload]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -89,3 +101,12 @@ jobs:
               --verify-tag --draft --title "AXE GOKZ Resource Installer $RELEASE_TAG" --generate-notes
           fi
           gh release edit "$RELEASE_TAG" --draft=false
+
+  upload-r2:
+    needs: release
+    uses: ./.github/workflows/upload-r2.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+    secrets:
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}

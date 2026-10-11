@@ -88,6 +88,43 @@ retried; published release assets are never overwritten by this workflow.
 The repository must allow GitHub Actions and the publishing job's
 `contents: write` permission. Releases remain unsigned.
 
+## R2 release mirror
+
+After a tag release is published, the release workflow directly calls
+[Upload release to R2](.github/workflows/upload-r2.yml). Branch builds and pull
+requests never upload. The uploader downloads the published EXE and checksum,
+verifies SHA-256 (including Windows CRLF manifests), and uploads both to `packages/resource-installer/<tag>/`.
+Only GitHub's latest stable release also updates `packages/AXE-Resource-Installer.exe`
+and `packages/SHA256SUMS.txt`. Stable objects use a five-minute cache lifetime;
+versioned objects are cached for one year. Uploads are serialized. Linux CI tests exercise the uploader with mocked GitHub
+and R2 commands; no network, game installation, or R2 credentials are needed.
+
+Configure these in this repository's **Settings → Secrets and variables → Actions**:
+
+- Variables: `R2_ACCOUNT_ID`, `R2_BUCKET_NAME` (the bucket serving `r2.axekz.com`).
+- Secrets: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (R2 S3 credentials with object
+  read/write access scoped to that bucket).
+
+The uploader uses `https://<account-id>.r2.cloudflarestorage.com` with region
+`auto`. A general Cloudflare API token is not an R2 S3 access key.
+
+To mirror the existing release or retry an upload without rebuilding:
+
+```bash
+gh workflow run upload-r2.yml --ref main -f release_tag=v1.0.0
+```
+
+Drafts, prereleases, malformed tags, missing configuration, and checksum errors
+fail before uploading. Retrying uploads the same release objects again. Mirroring
+an older release never replaces the stable download. Check the Actions run,
+then verify the public download against its checksum before linking it:
+
+```bash
+curl --fail --location https://r2.axekz.com/packages/AXE-Resource-Installer.exe -o AXE-Resource-Installer.exe
+curl --fail --location https://r2.axekz.com/packages/SHA256SUMS.txt -o SHA256SUMS.txt
+sha256sum --check SHA256SUMS.txt
+```
+
 ## Installation and recovery
 
 Steam registry entries and `libraryfolders.vdf` identify libraries;
@@ -127,7 +164,7 @@ or asset folders are deliberately rejected rather than followed.
 The pack is transported over HTTPS with certificate checks and verified with
 7-Zip's archive CRCs. There is no published checksum sidecar or pinned pack hash;
 these checks detect damaged downloads but do not independently authenticate the
-pack publisher. No website or hosting changes are part of this repository.
+pack publisher. Release assets are also mirrored to R2 as described above.
 
 The executable is currently unsigned. Windows may display an unknown-publisher
 warning depending on its security policy. Release signing can reduce this
