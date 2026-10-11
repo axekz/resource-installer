@@ -1,6 +1,6 @@
-# AXE Resource Installer
+# AXE GOKZ Resource Installer
 
-A portable, standalone Windows tool that downloads and installs AXE resources
+A portable, standalone Windows tool that downloads and installs AXE GOKZ resources
 for **standalone CS:GO Legacy, Steam app 4465480**.
 
 **Players do not install this tool.** They download one `.exe` and run it.

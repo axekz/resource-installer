@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 Unicode true
 ManifestDPIAware true
-Name "AXE Resource Installer"
-Caption "AXE Resource Installer"
+Name "AXE GOKZ Resource Installer"
+Caption "AXE GOKZ Resource Installer"
 OutFile "..\dist\AXE-Resource-Installer.exe"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
 ShowInstDetails show
-BrandingText "AXE • CS:GO Legacy"
+BrandingText " "
 VIProductVersion "1.0.0.0"
-VIAddVersionKey "ProductName" "AXE Resource Installer"
+VIAddVersionKey "ProductName" "AXE GOKZ Resource Installer"
 VIAddVersionKey "FileDescription" "Resources for standalone CS:GO Legacy (4465480)"
 VIAddVersionKey "FileVersion" "1.0.0"
-VIAddVersionKey "LegalCopyright" "AXE contributors"
+VIAddVersionKey "LegalCopyright" "AXE GOKZ contributors"
 
 !include "MUI2.nsh"
+!define MUI_ICON "..\assets\axe-gokz.ico"
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
 !include "WinVer.nsh"
@@ -33,7 +34,6 @@ Var Busy
 Var Failed
 Var Result
 Var LanguagePicker
-Var HelpLabel
 Var DetectionLabel
 Var FolderText
 Var BrowseButton
@@ -117,8 +117,6 @@ Function TargetPage
   !insertmacro MUI_HEADER_TEXT "$Text_PageTitle" "$Text_PageSubtitle"
   nsDialogs::Create 1018
   Pop $Dialog
-  ${NSD_CreateLabel} 0 2u 73% 14u "$Text_Portable"
-  Pop $HelpLabel
   ${NSD_CreateDropList} 77% 0 23% 60u ""
   Pop $LanguagePicker
   ${NSD_CB_AddString} $LanguagePicker "English"
@@ -197,7 +195,6 @@ Function LanguageChanged
   Call LoadLanguage
   WriteINIStr "$StateFile" "State" "Locale" "$UiLanguage"
   !insertmacro MUI_HEADER_TEXT "$Text_PageTitle" "$Text_PageSubtitle"
-  ${NSD_SetText} $HelpLabel "$Text_Portable"
   ${NSD_SetText} $FolderText "$Text_FolderHelp"
   ${NSD_SetText} $BrowseButton "$Text_Choose"
   ReadINIStr $0 "$StateFile" "State" "FolderLabelHandle"

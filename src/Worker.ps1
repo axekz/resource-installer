@@ -33,9 +33,9 @@ function Get-ErrorMessage([string]$Code) {
         FileLocked = @('A resource file is locked by another program. Close the program using that file and retry. CS:GO may otherwise remain running.', '资源文件被其他程序锁定，请关闭占用该文件的程序后重试。没有文件锁定时可以保持 CS:GO 运行。')
         InsufficientSpace = @('There is not enough free disk space for extraction, installation, and backups. Free some space and retry.', '磁盘空间不足，无法完成解压、安装和备份。请释放空间后重试。')
         UnsafeDestination = @('The selected folder contains a linked, conflicting, or unsupported path. Select a regular Steam installation.', '所选文件夹包含链接、冲突或不受支持的路径，请选择常规 Steam 安装文件夹。')
-        UnsafeArchive = @('The pack contains unsupported or conflicting entries. Nothing has been installed. Contact AXE support.', '资源包包含不受支持或冲突的文件，尚未安装任何资源。请联系 AXE 管理员。')
+        UnsafeArchive = @('The pack contains unsupported or conflicting entries. Nothing has been installed. Contact AXE GOKZ support.', '资源包包含不受支持或冲突的文件，尚未安装任何资源。请联系 AXE GOKZ 管理员。')
         ArchiveError = @('The resource pack is incomplete or damaged. Run the installer again to download a fresh copy.', '资源包不完整或已损坏，请重新运行安装程序以重新下载。')
-        RollbackFailed = @('Installation and automatic recovery could not finish. Keep the backup folder shown in the diagnostic log and contact AXE support.', '安装及自动恢复未能完成。请保留诊断日志中注明的备份文件夹，并联系 AXE 管理员。')
+        RollbackFailed = @('Installation and automatic recovery could not finish. Keep the backup folder shown in the diagnostic log and contact AXE GOKZ support.', '安装及自动恢复未能完成。请保留诊断日志中注明的备份文件夹，并联系 AXE GOKZ 管理员。')
         InstallFailed = @('Installation failed. See the diagnostic log for details and retry.', '安装失败，详情请查看诊断日志。请重试。')
     }
     if (-not $messages.ContainsKey($Code)) { $Code = 'InstallFailed' }

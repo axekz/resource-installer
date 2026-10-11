@@ -31,5 +31,9 @@ reported that no resources were installed and did not proceed to extraction.
 The full English GUI download, verification, extraction, and installation also
 completed successfully against a temporary fixture while CS:GO remained open.
 
-The unsigned portable executable is approximately 376 KiB. Build output and
+After the AXE GOKZ branding and transparent icon update, all 21 standard fixture
+checks passed again. Both interface languages were inspected for the removed
+subtitle, portable note, running-game sentence, footer text and new branding.
+
+The unsigned portable executable is approximately 726 KiB with the custom icon. Build output and
 downloaded dependencies are ignored; only the executable needs distribution.

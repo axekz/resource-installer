@@ -1,4 +1,4 @@
-# AXE Resource Installer
+# AXE GOKZ Resource Installer
 
 - Only support standalone Windows Source 1 CS:GO, Steam app 4465480. Never fall back to app 730.
 - Read README.md before changes. Keep both English and Simplified Chinese messages in sync.

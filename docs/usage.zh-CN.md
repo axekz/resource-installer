@@ -1,4 +1,4 @@
-# AXE 资源安装工具
+# AXE GOKZ 资源安装工具
 
 **工具本身无需安装。下载一个 EXE 文件，直接运行即可。**
 
@@ -31,7 +31,7 @@ Windows 自带的 PowerShell 5.1，不会打开命令行窗口。工具不创建
 
 诊断日志位于 `%LOCALAPPDATA%\AXE\ResourceInstaller\logs`。
 正常退出会清理当前下载及解压临时文件。如果自动恢复失败，请保留日志中
-注明的 `.axe-resource-backup-*` 备份文件夹，并联系 AXE 管理员。
+注明的 `.axe-resource-backup-*` 备份文件夹，并联系 AXE GOKZ 管理员。
 
 当前 EXE 尚未进行代码签名，Windows 可能根据安全策略显示未知发布者提示。
 此工具只安装游戏资源，不修改 Steam 启动信息，也不会自动启动游戏。
