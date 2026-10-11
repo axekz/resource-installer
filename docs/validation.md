@@ -26,6 +26,8 @@ Manual interface inspection confirmed English-to-Chinese and Chinese-to-English
 switching in the same window, with the folder preserved and no second installer
 launched. These checks were performed while the user's existing CS:GO session
 remained open. No test wrote into a live game installation.
+The final Chinese download screen and cancellation were also inspected: cancelling
+reported that no resources were installed and did not proceed to extraction.
 
 The unsigned portable executable is approximately 376 KiB. Build output and
 downloaded dependencies are ignored; only the executable needs distribution.

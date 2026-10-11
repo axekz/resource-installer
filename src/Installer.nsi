@@ -61,6 +61,8 @@ Page custom TargetPage TargetLeave
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "SimpChinese"
+MiscButtonText "$Text_BackButton" "$Text_NextButton" "$Text_CancelButton" "$Text_CloseButton"
+InstallButtonText "$Text_InstallLabel"
 
 
 Function .onInit
