@@ -49,10 +49,12 @@ function Get-FullPath([string]$Path) {
 function Assert-NoReparse([string]$Path) {
     $current = Get-FullPath $Path
     while ($current) {
-        if (Test-Path -LiteralPath $current) {
-            $item = Get-Item -LiteralPath $current -Force
-            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { Stop-Install 'UnsafeDestination' ('Linked path: ' + $current) }
-        }
+        # Avoid thousands of PowerShell provider round trips. GetAttributes also
+        # detects dangling reparse points, unlike File.Exists/Directory.Exists.
+        try { $attributes = [IO.File]::GetAttributes($current) }
+        catch [IO.FileNotFoundException] { $attributes = 0 }
+        catch [IO.DirectoryNotFoundException] { $attributes = 0 }
+        if ($attributes -band [IO.FileAttributes]::ReparsePoint) { Stop-Install 'UnsafeDestination' ('Linked path: ' + $current) }
         $parent = [IO.Path]::GetDirectoryName($current)
         if ($parent -eq $current) { break }
         $current = $parent
@@ -126,7 +128,7 @@ function Find-GameTargets([string[]]$SteamRoots = (Get-SteamRoots)) {
 
 function Assert-WritableDirectory([string]$Path) {
     Assert-NoReparse $Path
-    $probe = Join-Path $Path ('.axe-write-check-' + [guid]::NewGuid().ToString('N'))
+    $probe = [IO.Path]::Combine($Path, ('.axe-w-' + [guid]::NewGuid().ToString('N').Substring(0, 12)))
     try {
         $stream = [IO.File]::Open($probe, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
         $stream.Dispose()
@@ -253,25 +255,23 @@ function Get-CopyPlan($Target, $Plan) {
     $checked = @{}
     [long]$backupBytes = 0
     foreach ($entry in $files) {
-        $path = Join-Path $Target.Game $entry.Path
+        $path = [IO.Path]::Combine($Target.Game, $entry.Path)
         if ($path.Length -gt 240) { Stop-Install 'UnsafeDestination' 'Destination path is too long' }
         Assert-NoReparse $path
-        if (Test-Path -LiteralPath $path) {
-            $item = Get-Item -LiteralPath $path -Force
-            if ($item.PSIsContainer) { Stop-Install 'UnsafeDestination' ('Directory conflicts with file: ' + $path) }
+        if ([IO.Directory]::Exists($path)) { Stop-Install 'UnsafeDestination' ('Directory conflicts with file: ' + $path) }
+        if ([IO.File]::Exists($path)) {
+            $item = [IO.FileInfo]$path
             if ($item.IsReadOnly) { Stop-Install 'AccessDenied' $path }
             $backupBytes += $item.Length
-            try { $stream = [IO.File]::Open($path, 'Open', 'Write', 'Read'); $stream.Dispose() }
-            catch {
-                $native = $_.Exception
-                while ($native.InnerException) { $native = $native.InnerException }
-                if (($native.HResult -band 65535) -in @(32, 33)) { Stop-Install 'FileLocked' $path }
-                Stop-Install 'AccessDenied' $path
-            }
+            # Do not open every old resource for writing just to probe it. The
+            # atomic replacement handles locks, and prior replacements roll back
+            # if one fails. Parent directory permissions are checked below.
         }
         $parent = [IO.Path]::GetDirectoryName($path)
-        while (-not (Test-Path -LiteralPath $parent)) { $parent = [IO.Path]::GetDirectoryName($parent) }
-        if (-not (Test-Path -LiteralPath $parent -PathType Container)) { Stop-Install 'UnsafeDestination' 'File blocks destination directory' }
+        while (-not [IO.Directory]::Exists($parent)) {
+            if ([IO.File]::Exists($parent)) { Stop-Install 'UnsafeDestination' 'File blocks destination directory' }
+            $parent = [IO.Path]::GetDirectoryName($parent)
+        }
         if (-not $checked.ContainsKey($parent)) { Assert-WritableDirectory $parent; $checked[$parent] = $true }
     }
     Assert-FreeSpace $Target.Game ($Plan.Bytes + $backupBytes)
@@ -290,7 +290,7 @@ function Copy-Resources($Target, [string]$Staging, $Plan, [scriptblock]$OnProgre
     $inflight = $null
     try {
         foreach ($entry in $files) {
-            $destination = Join-Path $Target.Game $entry.Path
+            $destination = [IO.Path]::Combine($Target.Game, $entry.Path)
             Assert-NoReparse $destination
             $parent = [IO.Path]::GetDirectoryName($destination)
             $missing = New-Object 'System.Collections.Generic.List[string]'
@@ -298,18 +298,19 @@ function Copy-Resources($Target, [string]$Staging, $Plan, [scriptblock]$OnProgre
             while (-not [IO.Directory]::Exists($ancestor)) { $missing.Add($ancestor); $ancestor = [IO.Path]::GetDirectoryName($ancestor) }
             for ($i = $missing.Count - 1; $i -ge 0; $i--) { [void][IO.Directory]::CreateDirectory($missing[$i]); $createdDirectories.Add($missing[$i]) }
             $existed = [IO.File]::Exists($destination)
-            $backup = Join-Path $transaction $entry.Path
-            if ($existed) {
-                [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($backup))
-                [IO.File]::Copy($destination, $backup, $false)
-            }
-            $record = [pscustomobject]@{ Path = $entry.Path; Existed = $existed }
+            # Flat backup names avoid duplicating deep resource paths beneath
+            # the transaction folder (Windows PowerShell has legacy path limits).
+            $backupName = $journal.Count.ToString('D6') + '.bak'
+            $backup = [IO.Path]::Combine($transaction, $backupName)
+            $record = [pscustomobject]@{ Path = $entry.Path; Existed = $existed; Backup = $backupName }
             $writer.WriteLine(($record | ConvertTo-Json -Compress))
-            $journal.Add($record)
-            $inflight = Join-Path $parent ('.axe-copy-' + [guid]::NewGuid().ToString('N') + '.tmp')
-            [IO.File]::Copy((Join-Path $Staging $entry.Path), $inflight, $false)
-            if ($existed) { [IO.File]::Replace($inflight, $destination, [NullString]::Value) }
+            $inflight = [IO.Path]::Combine($parent, ('.c-' + [guid]::NewGuid().ToString('N').Substring(0, 12) + '.tmp'))
+            [IO.File]::Copy([IO.Path]::Combine($Staging, $entry.Path), $inflight, $false)
+            # Windows creates the old-file backup as part of the atomic replace;
+            # no extra full-file read/write is needed to prepare a backup.
+            if ($existed) { [IO.File]::Replace($inflight, $destination, $backup) }
             else { [IO.File]::Move($inflight, $destination) }
+            $journal.Add($record)
             $inflight = $null
             & $OnProgress $journal.Count $files.Count
         }
@@ -321,7 +322,7 @@ function Copy-Resources($Target, [string]$Staging, $Plan, [scriptblock]$OnProgre
             $destination = Join-Path $Target.Game $record.Path
             try {
                 Assert-NoReparse $destination
-                if ($record.Existed) { [IO.File]::Copy((Join-Path $transaction $record.Path), $destination, $true) }
+                if ($record.Existed) { [IO.File]::Copy([IO.Path]::Combine($transaction, $record.Backup), $destination, $true) }
                 elseif ([IO.File]::Exists($destination)) { [IO.File]::Delete($destination) }
             } catch { $rollbackErrors.Add($_.Exception.Message) }
         }
@@ -333,6 +334,9 @@ function Copy-Resources($Target, [string]$Staging, $Plan, [scriptblock]$OnProgre
             $keepBackup = $true
             Stop-Install 'RollbackFailed' ('Backup: ' + $transaction + '; ' + ($rollbackErrors -join '; '))
         }
+        $native = $original.Exception
+        while ($native.InnerException) { $native = $native.InnerException }
+        if (($native.HResult -band 65535) -in @(32, 33)) { Stop-Install 'FileLocked' $native.Message }
         throw $original
     } finally {
         $writer.Dispose()

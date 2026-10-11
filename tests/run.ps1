@@ -177,6 +177,44 @@ Test 'Copy failure rolls back overwritten files and newly created files' {
     Assert (-not [IO.File]::Exists((Join-Path $rollbackTarget.Game 'sound/axe/test.txt'))) 'New file survived rollback'
     Assert (@(Get-ChildItem -LiteralPath $rollbackTarget.Game -Force -Filter '.axe-*').Count -eq 0) 'Rollback temporary files leaked'
 }
+Test 'A lock acquired during installation rolls back earlier replacements' {
+    $entries = @($plan.Entries | Where-Object { -not $_.Directory })
+    $first = Join-Path $target.Game $entries[0].Path
+    $second = Join-Path $target.Game $entries[1].Path
+    Write-Text $first 'old first resource'
+    Write-Text $second 'old second resource'
+    $holder = @{Stream=$null}
+    try {
+        Expect-Code FileLocked {
+            Copy-Resources $target $staging $plan -OnProgress {
+                param($done, $total)
+                if ($done -eq 1) { $holder.Stream = [IO.File]::Open($second, 'Open', 'Read', 'None') }
+            }
+        }
+    } finally { if ($holder.Stream) { $holder.Stream.Dispose() } }
+    Assert ([IO.File]::ReadAllText($first) -eq 'old first resource') 'Earlier replacement was not restored'
+    Assert ([IO.File]::ReadAllText($second) -eq 'old second resource') 'Locked original changed'
+    Copy-Resources $target $staging $plan
+}
+Test 'Failure before replacement leaves original files intact without missing-backup rollback' {
+    $missingStage = Join-Path $testRoot 'absent-staging'
+    $original = [IO.File]::ReadAllText((Join-Path $target.Game 'materials/axe/test.vmt'))
+    try { Copy-Resources $target $missingStage $plan; throw 'Expected missing source failure' }
+    catch { Assert ($_.Exception.Data['InstallCode'] -ne 'RollbackFailed') 'Attempted recovery of an unchanged file' }
+    Assert ([IO.File]::ReadAllText((Join-Path $target.Game 'materials/axe/test.vmt')) -eq $original) 'Original file changed'
+}
+Test 'Deep resource paths support repeated installation under Windows PowerShell limits' {
+    $deep = 'materials\' + ('a' * 60) + '\' + ('b' * 25) + '\x.vmt'
+    $deepSource = Join-Path $testRoot 'deep-source'
+    Write-Text (Join-Path $deepSource $deep) 'deep resource'
+    $deepPlan = [pscustomobject]@{Entries=@([pscustomobject]@{Path=$deep; Directory=$false; Size=13; CRC=''}); Bytes=13}
+    Assert ((Join-Path $target.Game $deep).Length -le 240) 'Deep fixture exceeds installer path limit'
+    Copy-Resources $target $deepSource $deepPlan
+    Copy-Resources $target $deepSource $deepPlan
+    try { Copy-Resources $target $deepSource $deepPlan -OnProgress { throw 'Injected deep rollback' } }
+    catch { Assert ($_.Exception.Message -eq 'Injected deep rollback') 'Deep rollback failed' }
+    Assert ([IO.File]::ReadAllText((Join-Path $target.Game $deep)) -eq 'deep resource') 'Deep resource changed'
+}
 Test 'Destination junction is rejected without touching its target' {
     $linkedLibrary = Join-Path $testRoot 'Linked'
     $linkedGame = New-Game $linkedLibrary

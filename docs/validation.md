@@ -37,3 +37,36 @@ subtitle, portable note, running-game sentence, footer text and new branding.
 
 The unsigned portable executable is approximately 726 KiB with the custom icon. Build output and
 downloaded dependencies are ignored; only the executable needs distribution.
+
+## Installation performance and button layout
+
+The optimization replaces PowerShell provider calls with .NET filesystem calls,
+removes redundant per-file write probes, and uses Windows atomic replacement to
+create backups without copying old file contents separately. Every pack file
+still replaces its matching destination; no content comparison skips files.
+Backup filenames are flat and temporary filenames are short, fixing failures
+with deep paths under Windows PowerShell 5.1. Rollback only includes replacements
+that actually succeeded, including when a later file becomes locked.
+
+Extraction checks archive/data CRCs itself, so the helper no longer decompresses
+the entire solid archive once for testing and again for extraction. Failed
+extraction still stops before the destination resources are modified.
+
+Measured on this PC under Windows PowerShell 5.1, using the same 200 existing
+real-pack files with relative paths shorter than 80 characters:
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| Preflight | 3.33 s | 0.52 s |
+| Install, including its own preflight and backup cleanup | 9.69 s | 2.79 s |
+
+These timings exclude download and extraction and vary with disk, antivirus,
+and system load. A full optimized replacement of all 3,526 files took 47.12 s,
+including preflight and backup cleanup. Separate preflight took 9.56 s.
+All 24 standard fixture checks passed, including a file becoming locked after
+the first replacement, deep-path repeat installation, and rollback. The real
+pack extraction/install check and full GUI installation also succeeded.
+
+The primary button now restores its normal size on progress/completion pages.
+Unused Back buttons are hidden; the completion page shows only Close. Both
+progress and completion layouts were inspected in the Chinese interface.

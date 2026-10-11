@@ -91,15 +91,15 @@ try {
                 $required += $plan.Bytes
                 foreach ($entry in $plan.Entries) {
                     if (-not $entry.Directory) {
-                        $existing = Join-Path $target.Game $entry.Path
-                        if ([IO.File]::Exists($existing)) { $required += (Get-Item -LiteralPath $existing -Force).Length }
+                        $existing = [IO.Path]::Combine($target.Game, $entry.Path)
+                        if ([IO.File]::Exists($existing)) { $required += ([IO.FileInfo]$existing).Length }
                     }
                 }
             }
             Assert-FreeSpace $state.WorkDir $required
-            Say 'Verifying resource pack checksums...' '正在校验资源包完整性……'
-            $null = Invoke-SevenZip $sevenZip @('t', '-bd', '-bsp0', '-sccUTF-8', '-p-', '--', $archive)
-            Say 'Extracting resources...' '正在解压资源……'
+            # Extraction validates archive/data CRCs itself. A separate `t` pass
+            # decompresses the whole solid archive twice without adding safety.
+            Say 'Extracting and verifying resource checksums...' '正在解压并校验资源包完整性……'
             if (Test-Path -LiteralPath $staging) { Stop-Install 'UnsafeDestination' 'Staging directory already exists' }
             $null = Invoke-SevenZip $sevenZip @('x', '-y', '-bd', '-bsp0', '-sccUTF-8', '-p-', ('-o' + $staging), '--', $archive)
             Assert-StagingTree $staging $plan

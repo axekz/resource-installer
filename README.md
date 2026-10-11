@@ -76,13 +76,16 @@ names, alternate streams, links, encrypted entries, and conflicting file aliases
 are rejected. The current pack includes directory aliases and identical sound
 file aliases differing only by case; these are accepted only when file sizes
 and archive CRCs match. Extraction is isolated and the resulting tree is checked
-against the listing before any game file is copied.
+against the listing before any game file is copied. Archive CRCs are checked
+during extraction; a separate full decompression pass is unnecessary.
 
-Existing resource files are backed up during copying, and replacements use
-same-directory temporary files and atomic replacement. Normal copy failures
+Every pack file replaces its matching destination without comparing contents.
+Existing resource files are backed up by Windows as part of atomic replacement,
+using same-directory temporary files. Flat backup names avoid long-path failures. Normal copy failures
 restore previous contents and remove newly installed files. If rollback itself
 fails, keep the `.axe-resource-backup-*` folder inside the game's `csgo` folder;
-the diagnostic log identifies it and `journal.jsonl` records affected paths.
+the diagnostic log identifies it and `journal.jsonl` maps affected paths to flat
+backup filenames.
 Abrupt power loss or killing the process can leave this recovery folder and
 partially installed resources; there is no automatic crash-recovery service.
 

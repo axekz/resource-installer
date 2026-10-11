@@ -38,6 +38,10 @@ Var DetectionLabel
 Var FolderText
 Var BrowseButton
 Var NextButtonSized
+Var NextOriginalX
+Var NextOriginalY
+Var NextOriginalWidth
+Var NextOriginalHeight
 Var UiLanguage
 !include "..\.cache\RuntimeLanguage.nsh"
 CompletedText "$Text_DoneTitle"
@@ -174,6 +178,10 @@ Function TargetPage
     System::Free $1
     IntOp $5 $5 - $3
     IntOp $6 $6 - $4
+    StrCpy $NextOriginalX $3
+    StrCpy $NextOriginalY $4
+    StrCpy $NextOriginalWidth $5
+    StrCpy $NextOriginalHeight $6
     IntOp $3 $3 - $2
     IntOp $5 $5 + $2
     System::Call 'user32::SetWindowPos(p r0, p 0, i r3, i r4, i r5, i r6, i 4)'
@@ -212,6 +220,7 @@ Function LanguageChanged
 FunctionEnd
 
 Function ProgressShow
+  Call RestoreNextButton
   !insertmacro MUI_HEADER_TEXT "$Text_WorkingTitle" "$Text_WorkingSubtitle"
   GetDlgItem $0 $HWNDPARENT 2
   SendMessage $0 ${WM_SETTEXT} 0 "STR:$Text_CancelButton"
@@ -219,11 +228,25 @@ Function ProgressShow
   SendMessage $0 ${WM_SETTEXT} 0 "STR:$Text_NextButton"
   GetDlgItem $0 $HWNDPARENT 3
   SendMessage $0 ${WM_SETTEXT} 0 "STR:$Text_BackButton"
+  ShowWindow $0 ${SW_HIDE}
 FunctionEnd
 
 Function FinishShow
+  Call RestoreNextButton
   GetDlgItem $0 $HWNDPARENT 1
   SendMessage $0 ${WM_SETTEXT} 0 "STR:$Text_CloseButton"
+  GetDlgItem $0 $HWNDPARENT 3
+  ShowWindow $0 ${SW_HIDE}
+  GetDlgItem $0 $HWNDPARENT 2
+  ShowWindow $0 ${SW_HIDE}
+FunctionEnd
+
+Function RestoreNextButton
+  ${If} $NextButtonSized == 1
+    GetDlgItem $0 $HWNDPARENT 1
+    System::Call 'user32::SetWindowPos(p r0, p 0, i $NextOriginalX, i $NextOriginalY, i $NextOriginalWidth, i $NextOriginalHeight, i 4)'
+    StrCpy $NextButtonSized 0
+  ${EndIf}
 FunctionEnd
 
 Function CandidateChanged
