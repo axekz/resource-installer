@@ -102,11 +102,13 @@ and R2 commands; no network, game installation, or R2 credentials are needed.
 Configure these in this repository's **Settings → Secrets and variables → Actions**:
 
 - Variables: `R2_ACCOUNT_ID`, `R2_BUCKET_NAME` (the bucket serving `r2.axekz.com`).
+- Variable: `R2_JURISDICTION=eu` for the existing EU bucket (omit for global buckets).
 - Secrets: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (R2 S3 credentials with object
   read/write access scoped to that bucket).
 
 The uploader uses `https://<account-id>.r2.cloudflarestorage.com` with region
-`auto`. A general Cloudflare API token is not an R2 S3 access key.
+`auto`; EU buckets use `https://<account-id>.eu.r2.cloudflarestorage.com`.
+A general Cloudflare API token is not an R2 S3 access key.
 
 To mirror the existing release or retry an upload without rebuilding:
 

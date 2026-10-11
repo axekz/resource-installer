@@ -15,7 +15,11 @@ if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]
 fi
 
 export AWS_DEFAULT_REGION=auto AWS_EC2_METADATA_DISABLED=true AWS_PAGER=''
-endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+case "${R2_JURISDICTION:-default}" in
+  default) endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" ;;
+  eu) endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com" ;;
+  *) echo 'R2_JURISDICTION must be default or eu.' >&2; exit 1 ;;
+esac
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT
 cd "$workdir"

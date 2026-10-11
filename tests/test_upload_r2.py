@@ -42,6 +42,8 @@ if os.environ.get('FAIL_UPLOAD'): sys.exit(1)
     )
     cases = [
         ("latest", {}, True, 4),
+        ("EU bucket", {"R2_JURISDICTION": "eu"}, True, 4),
+        ("invalid jurisdiction", {"R2_JURISDICTION": "invalid"}, False, 0),
         ("Windows checksum", {"CRLF": "1"}, True, 4),
         ("older", {"LATEST": "v1.1.0"}, True, 2),
         ("draft", {"DRAFT": "1"}, False, 0),
@@ -67,6 +69,8 @@ if os.environ.get('FAIL_UPLOAD'): sys.exit(1)
         )
         assert (r.returncode == 0) == success, (name, r.stderr)
         assert len(uploads) == count, (name, uploads)
+        if name == "EU bucket":
+            assert "https://fixture.eu.r2.cloudflarestorage.com" in uploads[0]
         if name == "latest":
             assert (
                 uploads[0][3]
